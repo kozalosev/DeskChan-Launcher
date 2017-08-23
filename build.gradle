@@ -1,0 +1,104 @@
+import org.gradle.api.internal.plugins.StartScriptGenerator
+import java.util.stream.Collectors
+
+version 'v0.1.0-dev'
+
+// At first, the application is assembled to this directory. And only then it packs into a zip file.
+ext.launch4jDir = "$buildDir/launch4j"
+
+buildscript {
+    ext.kotlin_version = '1.1.4'
+
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+
+    dependencies {
+        classpath group: 'org.jetbrains.kotlin', name: 'kotlin-gradle-plugin', version: kotlin_version
+        classpath group: 'com.github.jengelman.gradle.plugins', name: 'shadow', version: '1.2.4'
+        classpath group: 'edu.sc.seis.gradle', name: 'launch4j', version: '2.3.0+'
+    }
+}
+
+apply plugin: 'kotlin'
+apply plugin: 'application'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'edu.sc.seis.launch4j'
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jre8', version: kotlin_version
+    compile group: 'org.json', name: 'json', version: '20170516'
+    compile group: 'net.lingala.zip4j', name: 'zip4j', version: '1.3.2'
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+mainClassName = 'info.deskchan.installer.MainKt'
+applicationName = 'DeskChan-Launcher'
+ext.fullAppName = "$applicationName $version"
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+compileJava.options.encoding = 'UTF-8'
+
+shadowJar {
+    baseName = applicationName
+    classifier = null
+}
+
+
+createExe {
+    outfile = "${applicationName}.exe"
+    mainClassName = project.mainClassName
+    copyConfigurable = files()
+    jar = "$libsDir/${tasks.shadowJar.archiveName}"
+    icon = file("$projectDir/appicon.ico")
+    headerType = 'console'
+    productName = internalName = fileDescription = applicationName
+}
+
+task createStartScriptsForExe(type: MyStartScripts) {
+    outputDir = file(launch4jDir)
+    mainClassName = project.mainClassName
+    applicationName = project.applicationName
+    classpath = files(createExe.outfile)
+}
+
+task createExeDistZip(type: Zip, dependsOn: [createExe, createStartScriptsForExe]) {
+    from launch4jDir
+    include '**/*'
+    archiveName "${fullAppName}.zip"
+    destinationDir file(distsDir)
+}
+
+
+class MyStartScripts extends org.gradle.jvm.application.tasks.CreateStartScripts {
+    @Override
+    @TaskAction
+    void generate() {
+        def generator = new StartScriptGenerator(unixStartScriptGenerator, windowsStartScriptGenerator)
+        generator.setApplicationName(getApplicationName())
+        generator.setMainClassName(getMainClassName())
+        generator.setDefaultJvmOpts(getDefaultJvmOpts())
+        generator.setOptsEnvironmentVar(getOptsEnvironmentVar())
+        generator.setExitEnvironmentVar(getExitEnvironmentVar())
+        generator.setClasspath(getRelativeClasspath())
+        generator.setScriptRelPath(getUnixScript().getName())
+        generator.generateUnixScript(getUnixScript())
+        // generator.generateWindowsScript(getWindowsScript())
+    }
+
+    private Iterable<String> getRelativeClasspath() {
+        this.getClasspath().getFiles().stream().map { it.getName() }.collect(Collectors.toList())
+    }
+}
