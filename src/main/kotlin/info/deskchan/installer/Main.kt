@@ -9,9 +9,15 @@ import kotlin.system.exitProcess
 
 private const val MANIFEST_FILENAME = "version.json"
 private const val QUIT_DELAY = 5    // in seconds
+private const val APPLICATION_NAME = "DeskChan"
 
 val env = Environment()
 val view: LocalizableTextView = LocalizableConsole(env.getLocalization())
+
+private val execFilePath: Path by lazy {
+    val extension = if (onWindows) ".exe" else ""
+    env.rootDirPath.resolve("bin/DeskChan$extension")
+}
 
 
 fun main(args: Array<String>) {
@@ -47,6 +53,8 @@ fun main(args: Array<String>) {
             view.log(e)
             exitProcess(1)
         }
+
+        setAutorunUp()
     } else {
         view.info("info.latest_already_installed")
     }
@@ -56,21 +64,20 @@ fun main(args: Array<String>) {
 }
 
 
-private fun getBinFilePath(): Path {
-    val onWindows = System.getProperty("os.name").startsWith("Windows")
-    val extension = if (onWindows) ".exe" else ""
-    val binFilePath = env.rootDirPath.resolve("bin/DeskChan$extension")
-    binFilePath.toFile().setExecutable(true)
-    return binFilePath
+private fun setAutorunUp() {
+    val answer = view.input("input.should_run_at_startup", listOf("Y", "N"))
+    if (answer.isNotEmpty() && answer[0].toLowerCase() == 'y') {
+        getAutorunManager(APPLICATION_NAME, execFilePath).setAutorunUp()
+    }
 }
 
 private fun launchApplication() {
-    val binFilePath = getBinFilePath()
-    if (Files.isExecutable(binFilePath)) {
+    execFilePath.toFile().setExecutable(true)
+    if (Files.isExecutable(execFilePath)) {
         view.important("important.launching")
-        ProcessBuilder(binFilePath.toString()).start()
+        ProcessBuilder(execFilePath.toString()).start()
     } else {
-        view.important("important.could_not_find_exe", binFilePath)
+        view.important("important.could_not_find_executable", execFilePath)
     }
 }
 

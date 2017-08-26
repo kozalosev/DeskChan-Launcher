@@ -35,6 +35,7 @@ dependencies {
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jre8', version: kotlin_version
     compile group: 'org.json', name: 'json', version: '20170516'
     compile group: 'net.lingala.zip4j', name: 'zip4j', version: '1.3.2'
+    compile group: 'com.github.sarxos', name: 'windows-registry-util', version: '0.3'
 }
 
 compileKotlin {

@@ -38,3 +38,7 @@ class Environment {
 class Localization(private val strings: Map<String, String>) {
     fun getString(label: String) = strings.getOrDefault(label, label)
 }
+
+
+val onWindows: Boolean
+    get() = System.getProperty("os.name").startsWith("Windows")

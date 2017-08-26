@@ -13,6 +13,9 @@ interface TextView {
     fun raw(text: String)
     fun blank(count: Int = 1)
     fun update(text: String)
+
+    fun input(): String
+    fun input(question: String, options: List<String> = emptyList()): String
 }
 
 interface LocalizableTextView : TextView {
@@ -20,12 +23,15 @@ interface LocalizableTextView : TextView {
     fun info(pattern: String, vararg vars: Any)
     fun warn(pattern: String, vararg vars: Any)
     fun important(pattern: String, vararg vars: Any)
+
+    fun input(pattern: String, vararg vars: Any, options: List<String> = emptyList()): String
 }
 
 
 open class Console : TextView {
 
     private var lastWrittenString: String = ""
+    private val console: java.io.Console? = System.console()
 
 
     override fun log(obj: Any?) {
@@ -61,6 +67,16 @@ open class Console : TextView {
         printRaw(newStr)
     }
 
+    override fun input() = console?.readLine() ?: ""
+
+    override fun input(question: String, options: List<String>): String {
+        val query = when {
+            options.isNotEmpty() -> "$question [${options.joinToString("/")}]: "
+            else                 -> "$question: "
+        }
+        printRaw(query)
+        return input()
+    }
 
     private fun printRaw(str: String) {
         lastWrittenString = str
@@ -85,6 +101,8 @@ class LocalizableConsole(private val localization: Localization) : Console(), Lo
 
     override fun important(text: String) = super.important(localization.getString(text))
 
+    override fun input(question: String, options: List<String>) = super.input(localization.getString(question), options)
+
 
     override fun write(pattern: String, vararg vars: Any) = super.write(pattern.resolve(vars))
 
@@ -94,6 +112,7 @@ class LocalizableConsole(private val localization: Localization) : Console(), Lo
 
     override fun important(pattern: String, vararg vars: Any) = super.important(pattern.resolve(vars))
 
+    override fun input(pattern: String, vararg vars: Any, options: List<String>) = super.input(pattern.resolve(vars), options)
 
     private fun String.resolve(vars: Array<out Any>): String {
         val pattern = localization.getString(this)
