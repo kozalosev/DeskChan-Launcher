@@ -18,6 +18,8 @@ class Environment {
         directoryPath
     }
 
+    val version by lazy { javaClass.`package`.implementationVersion ?: "[UNOFFICIAL DEBUG VERSION]" }
+
     private val defaultLocalization = getLocalization()
 
     fun getString(key: String) = defaultLocalization.getString(key)
@@ -40,5 +42,4 @@ class Localization(private val strings: Map<String, String>) {
 }
 
 
-val onWindows: Boolean
-    get() = System.getProperty("os.name").startsWith("Windows")
+val onWindows by lazy { System.getProperty("os.name").startsWith("Windows") }

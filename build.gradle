@@ -55,6 +55,11 @@ compileJava.options.encoding = 'UTF-8'
 shadowJar {
     baseName = applicationName
     classifier = null
+
+    manifest {
+        attributes 'Implementation-Title'  : applicationName,
+                   'Implementation-Version': version
+    }
 }
 
 

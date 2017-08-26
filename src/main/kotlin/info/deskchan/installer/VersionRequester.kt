@@ -78,3 +78,8 @@ internal class InstalledVersionRequester(private val rootDirPath: Path, private 
     }
 
 }
+
+
+data class Release(val version: String, val url: URL? = null) {
+    val versionObject: Version? = parseVersion(version)
+}

@@ -4,69 +4,60 @@ import java.net.URL
 import java.nio.file.Path
 
 
-private const val REQUEST_URL = "https://api.github.com/repos/DeskChan/DeskChan/releases"
-private const val DEFAULT_DOWNLOAD_URL = "https://deskchan.info/deskchan.zip"
+data class Repository(val user: String, val repository: String) {
+    val releasesUrl by lazy { URL("https://api.github.com/repos/$user/$repository/releases") }
+}
 
 
-class VersionResolver(localPath: Path, manifestFilename: String) {
+interface VersionResolver {
+    val isUpdateNeeded: Boolean
 
-    private val latestReleaseInfo = RemoteVersionRequester(URL(REQUEST_URL)).tryGetReleaseInfo()
+    val latestVersion: Any?
+    val latestVersionUrl: URL?
+
+    val installedVersion: Any?
+}
+
+
+abstract class RepositoryVersionResolver(repo: Repository) : VersionResolver {
+    protected val latestReleaseInfo = RemoteVersionRequester(repo.releasesUrl).tryGetReleaseInfo()
+}
+
+
+class ManifestVersionResolver(repo: Repository, localPath: Path, manifestFilename: String) : RepositoryVersionResolver(repo) {
+
     private val installedReleaseInfo = InstalledVersionRequester(localPath, manifestFilename).tryGetReleaseInfo()
 
-    val isUpdateNeeded: Boolean
+    override val isUpdateNeeded: Boolean
         get() = when {
             latestReleaseInfo == null -> false
             installedReleaseInfo == null -> true
             latestReleaseInfo.versionObject == null || installedReleaseInfo.versionObject == null -> {
                 latestReleaseInfo.version == installedReleaseInfo.version
             }
-            else -> {
-                val installed = installedReleaseInfo.versionObject
-                val latest = latestReleaseInfo.versionObject
-                latest.major > installed.major ||
-                        latest.minor > installed.minor ||
-                        latest.patch > installed.patch ||
-                        latest.commitNumber > installed.commitNumber
-            }
+            else -> latestReleaseInfo.versionObject > installedReleaseInfo.versionObject
         }
 
-    val latestVersion = latestReleaseInfo?.versionObject ?: latestReleaseInfo!!.version
-    val latestVersionUrl = latestReleaseInfo?.url ?: URL(DEFAULT_DOWNLOAD_URL)
+    override val latestVersion = latestReleaseInfo?.versionObject ?: latestReleaseInfo?.version
+    override val latestVersionUrl = latestReleaseInfo?.url
 
-    val installedVersion = installedReleaseInfo?.versionObject ?: installedReleaseInfo?.version
+    override val installedVersion = installedReleaseInfo?.versionObject ?: installedReleaseInfo?.version
 
 }
 
 
-data class Version(val major: Int, val minor: Int, val patch: Int, val commitNumber: Int) {
+class StringVersionResolver(repo: Repository, version: String) : RepositoryVersionResolver(repo) {
 
-    companion object {
-        fun fromString(version: String): Version? {
-            val expr = "v([0-9]+)\\.([0-9]+)\\.([0-9]+)-r([0-9]+)".toRegex()
-            val matches = expr.matchEntire(version)?.groups
-
-            if (matches != null && matches.size >= 5) {
-                return try {
-                    val major = matches[1]!!.value.toInt()
-                    val minor = matches[2]!!.value.toInt()
-                    val patch = matches[3]!!.value.toInt()
-                    val commitNumber = matches[4]!!.value.toInt()
-                    Version(major, minor, patch, commitNumber)
-                } catch (e: Exception) {
-                    view.log(e)
-                    null
-                }
-
-            }
-            return null
+    override val isUpdateNeeded: Boolean
+        get() = when {
+            latestReleaseInfo == null -> false
+            latestReleaseInfo.versionObject != null && installedVersion is Version -> latestReleaseInfo.versionObject > installedVersion
+            else -> latestReleaseInfo.version == installedVersion.toString()
         }
-    }
 
-    override fun toString() = "v$major.$minor.$patch-r$commitNumber"
+    override val latestVersion = latestReleaseInfo?.versionObject ?: latestReleaseInfo?.version
+    override val latestVersionUrl = latestReleaseInfo?.url
 
-}
+    override val installedVersion = parseVersion(version) ?: version
 
-
-data class Release(val version: String, val url: URL? = null) {
-    val versionObject: Version? = Version.fromString(version)
 }
