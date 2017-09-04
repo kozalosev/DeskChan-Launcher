@@ -1,7 +1,9 @@
+import edu.sc.seis.launch4j.tasks.Launch4jLibraryTask
 import org.gradle.api.internal.plugins.StartScriptGenerator
 import java.util.stream.Collectors
 
 version 'v0.1.0-dev'
+ext.defaultModule = 'cli'
 
 // At first, the application is assembled to this directory. And only then it packs into a zip file.
 ext.launch4jDir = "$buildDir/launch4j"
@@ -16,8 +18,8 @@ buildscript {
 
     dependencies {
         classpath group: 'org.jetbrains.kotlin', name: 'kotlin-gradle-plugin', version: kotlin_version
-        classpath group: 'com.github.jengelman.gradle.plugins', name: 'shadow', version: '1.2.4'
-        classpath group: 'edu.sc.seis.gradle', name: 'launch4j', version: '2.3.0+'
+        classpath group: 'com.github.jengelman.gradle.plugins', name: 'shadow', version: '2.0.1+'
+        classpath group: 'edu.sc.seis.gradle', name: 'launch4j', version: '2.4.1+'
     }
 }
 
@@ -36,6 +38,7 @@ dependencies {
     compile group: 'org.json', name: 'json', version: '20170516'
     compile group: 'net.lingala.zip4j', name: 'zip4j', version: '1.3.2'
     compile group: 'com.github.sarxos', name: 'windows-registry-util', version: '0.3'
+    compile group: 'args4j', name: 'args4j', version: '2.33'
 }
 
 compileKotlin {
@@ -45,42 +48,90 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 
-mainClassName = 'info.deskchan.installer.MainKt'
+sourceSets {
+    def modules = [
+        cli
+    ]
+    modules.forEach {
+        it.compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+    }
+}
+
+static String buildMainClassName(String module = null) {
+    def builder = new StringBuilder('info.deskchan.launcher')
+    if (module != null) {
+        builder.append('.' + module)
+    }
+    builder.append('.MainKt')
+    return builder.toString()
+}
+
+static String shortenName(String name) {
+    name.toCharArray()
+            .findAll { it.isUpperCase() }
+            .inject(new StringBuilder()) { builder, value -> builder.append(value.toLowerCase()) }
+            .toString()
+}
+
 applicationName = 'DeskChan-Launcher'
+ext.shortAppName = shortenName(applicationName)
 ext.fullAppName = "$applicationName $version"
+
+mainClassName = buildMainClassName(defaultModule)
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 compileJava.options.encoding = 'UTF-8'
 
-shadowJar {
-    baseName = applicationName
-    classifier = null
 
-    manifest {
-        attributes 'Implementation-Title'  : applicationName,
-                   'Implementation-Version': version
-    }
+shadowJar {
+    baseName = shortAppName.toUpperCase()
+    classifier = 'CORE'
+    version = null
 }
 
+task cliJar(type: Jar) {
+    baseName = applicationName
+    classifier = 'CLI'
 
-createExe {
-    outfile = "${applicationName}.exe"
-    mainClassName = project.mainClassName
+    from (sourceSets.cli.output) {
+        include '**/*'
+    }
+
+    manifest.attributes 'Main-Class': buildMainClassName('cli')
+}
+
+[shadowJar, cliJar].forEach {
+    it.manifest.attributes 'Implementation-Title'  : "${it.baseName}-${it.classifier}",
+                           'Implementation-Version': it.version ?: project.version
+}
+
+task copyCommonJar(type: Copy, dependsOn: shadowJar) {
+    from shadowJar.archivePath
+    into launch4jDir
+}
+
+task createConsoleExe(type: Launch4jLibraryTask) {
+    inputs.file(cliJar.outputs)
+
+    outfile = "${shortAppName}.exe"
+    mainClassName = buildMainClassName('cli')
     copyConfigurable = files()
-    jar = "$libsDir/${tasks.shadowJar.archiveName}"
+    jar = "$libsDir/${tasks.cliJar.archiveName}"
     icon = file("$projectDir/appicon.ico")
     headerType = 'console'
     productName = internalName = fileDescription = applicationName
+    classpath += shadowJar.archiveName
 }
 
-task createStartScriptsForExe(type: MyStartScripts) {
+task createStartScriptsForConsoleExe(type: MyStartScripts) {
     outputDir = file(launch4jDir)
-    mainClassName = project.mainClassName
-    applicationName = project.applicationName
-    classpath = files(createExe.outfile)
+    mainClassName = createConsoleExe.mainClassName
+    applicationName = shortAppName
+    classpath = files(createConsoleExe.outfile, shadowJar.archiveName)
 }
 
-task createExeDistZip(type: Zip, dependsOn: [createExe, createStartScriptsForExe]) {
+task createExeDistZip(type: Zip, dependsOn: [copyCommonJar, createConsoleExe,
+                                             createStartScriptsForConsoleExe]) {
     from launch4jDir
     include '**/*'
     archiveName "${fullAppName}.zip"

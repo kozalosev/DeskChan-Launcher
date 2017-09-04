@@ -1,4 +1,4 @@
-package info.deskchan.installer
+package info.deskchan.launcher.util
 
 import java.io.IOException
 import java.nio.ByteBuffer

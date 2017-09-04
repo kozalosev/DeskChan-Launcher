@@ -1,4 +1,4 @@
-package info.deskchan.installer
+package info.deskchan.launcher
 
 import com.github.sarxos.winreg.HKey
 import com.github.sarxos.winreg.WindowsRegistry

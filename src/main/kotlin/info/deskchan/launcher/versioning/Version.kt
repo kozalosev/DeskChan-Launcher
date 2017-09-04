@@ -1,4 +1,4 @@
-package info.deskchan.installer
+package info.deskchan.launcher.versioning
 
 
 interface Version {
@@ -22,25 +22,18 @@ interface Version {
 
 data class SemanticVersion(override val major: Int, override val minor: Int, override val patch: Int, val specifier: String? = null): Version {
 
-    companion object {
+    companion object Builder {
         fun fromString(version: String): SemanticVersion? {
             val expr = "v([0-9]+)\\.([0-9]+)\\.([0-9]+)(-(.+))?".toRegex()
             val matches = expr.matchEntire(version)?.groups
+                    ?: return null
 
-            if (matches != null && matches.size >= 4) {
-                return try {
-                    val major = matches[1]!!.value.toInt()
-                    val minor = matches[2]!!.value.toInt()
-                    val patch = matches[3]!!.value.toInt()
-                    val specifier = if (matches.size >= 6) matches[5]!!.value else null
-                    SemanticVersion(major, minor, patch, specifier)
-                } catch (e: Exception) {
-                    view.log(e)
-                    null
-                }
+            val major = matches[1]!!.value.toInt()
+            val minor = matches[2]!!.value.toInt()
+            val patch = matches[3]!!.value.toInt()
+            val specifier = if (matches.size >= 6) matches[5]!!.value else null
 
-            }
-            return null
+            return SemanticVersion(major, minor, patch, specifier)
         }
     }
 
@@ -54,25 +47,18 @@ data class SemanticVersion(override val major: Int, override val minor: Int, ove
 
 data class CommitVersion(override val major: Int, override val minor: Int, override val patch: Int, val commitNumber: Int): Version {
 
-    companion object {
+    companion object Builder {
         fun fromString(version: String): Version? {
             val expr = "v([0-9]+)\\.([0-9]+)\\.([0-9]+)-r([0-9]+)".toRegex()
             val matches = expr.matchEntire(version)?.groups
+                    ?: return null
 
-            if (matches != null && matches.size >= 5) {
-                return try {
-                    val major = matches[1]!!.value.toInt()
-                    val minor = matches[2]!!.value.toInt()
-                    val patch = matches[3]!!.value.toInt()
-                    val commitNumber = matches[4]!!.value.toInt()
-                    CommitVersion(major, minor, patch, commitNumber)
-                } catch (e: Exception) {
-                    view.log(e)
-                    null
-                }
+            val major = matches[1]!!.value.toInt()
+            val minor = matches[2]!!.value.toInt()
+            val patch = matches[3]!!.value.toInt()
+            val commitNumber = matches[4]!!.value.toInt()
 
-            }
-            return null
+            return CommitVersion(major, minor, patch, commitNumber)
         }
     }
 
@@ -90,7 +76,7 @@ data class CommitVersion(override val major: Int, override val minor: Int, overr
 
 
 fun parseVersion(version: String): Version? {
-    listOf(SemanticVersion.Companion::fromString, CommitVersion.Companion::fromString).forEach {
+    listOf(SemanticVersion.Builder::fromString, CommitVersion.Builder::fromString).forEach {
         val obj = it(version)
         obj?.let { return obj }
     }

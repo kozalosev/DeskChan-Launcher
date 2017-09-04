@@ -1,5 +1,7 @@
-package info.deskchan.installer
+package info.deskchan.launcher.versioning
 
+import info.deskchan.launcher.InvalidVersionInfoException
+import info.deskchan.launcher.VersionInfoNotFoundException
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -11,14 +13,14 @@ import java.net.URL
 import java.nio.file.Path
 
 
-private interface VersionRequester {
-    fun tryGetReleaseInfo(): Release?
+interface VersionRequester {
+    fun getReleaseInfo(): Release
 }
 
 
-internal class RemoteVersionRequester(private val remoteUrl: URL) : VersionRequester {
+class RemoteJsonRequester(private val remoteUrl: URL) {
 
-    private fun requestJsonFromGithub(): JSONArray {
+    private fun requestJson(): JSONArray {
         val stream = remoteUrl.openConnection().getInputStream()
         val response = BufferedReader(InputStreamReader(stream))
         val text = response.readText()
@@ -27,6 +29,22 @@ internal class RemoteVersionRequester(private val remoteUrl: URL) : VersionReque
         return JSONArray(tokener)
     }
 
+    fun parse(parser: (json: JSONArray) -> Release) = try {
+        val json = requestJson()
+        parser(json)
+    } catch (e: JSONException) {
+        throw InvalidVersionInfoException()
+    } catch (e: IOException) {
+        throw VersionInfoNotFoundException()
+    }
+
+}
+
+
+class GitHubVersionRequester(repo: Repository) : VersionRequester {
+
+    private val requester = RemoteJsonRequester(repo.releasesUrl)
+
     private fun parseLatestVersion(json: JSONArray): Release {
         val latest = json.getJSONObject(0)
         val version = latest.getString("name")
@@ -34,29 +52,16 @@ internal class RemoteVersionRequester(private val remoteUrl: URL) : VersionReque
         return Release(version, URL(archive))
     }
 
-    override fun tryGetReleaseInfo() = try {
-        val json = requestJsonFromGithub()
-        parseLatestVersion(json)
-    } catch (e: JSONException) {
-        view.warn("warn.invalid_json")
-        view.log(e)
-        null
-    } catch (e: IOException) {
-        view.warn("warn.could_not_reach_github")
-        view.log(e)
-        null
-    }
-
+    override fun getReleaseInfo() = requester.parse(this::parseLatestVersion)
 }
 
 
-internal class InstalledVersionRequester(private val rootDirPath: Path, private val manifestFilename: String) : VersionRequester {
+class InstalledVersionRequester(private val rootDirPath: Path, private val manifestFilename: String) : VersionRequester {
 
-    private fun readInstalledVersionInfo(): JSONObject? {
+    private fun readInstalledVersionInfo(): JSONObject {
         val manifestFile = rootDirPath.resolve(manifestFilename).toFile()
         if (!manifestFile.canRead()) {
-            view.info("info.manifest_not_found")
-            return null
+            throw VersionInfoNotFoundException()
         }
 
         val text = manifestFile.readText()
@@ -64,17 +69,16 @@ internal class InstalledVersionRequester(private val rootDirPath: Path, private 
         return JSONObject(tokener)
     }
 
-    private fun parseInstalledVersionInfo(json: JSONObject): Release? {
+    private fun parseInstalledVersionInfo(json: JSONObject): Release {
         val version = json.getString("version")
         return Release(version)
     }
 
-    override fun tryGetReleaseInfo() = try {
+    override fun getReleaseInfo() = try {
         val json = readInstalledVersionInfo()
-        json?.let { parseInstalledVersionInfo(it) }
+        parseInstalledVersionInfo(json)
     } catch (e: JSONException) {
-        view.warn("warn.invalid_manifest")
-        null
+        throw InvalidVersionInfoException()
     }
 
 }
