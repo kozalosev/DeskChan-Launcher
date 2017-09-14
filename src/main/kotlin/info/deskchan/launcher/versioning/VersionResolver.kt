@@ -4,7 +4,7 @@ import java.net.URL
 
 
 data class Repository(val user: String, val repository: String) {
-    val releasesUrl by lazy { URL("https://api.github.com/repos/$user/$repository/releases") }
+    val releasesUrl = URL("https://api.github.com/repos/$user/$repository/releases")
 }
 
 

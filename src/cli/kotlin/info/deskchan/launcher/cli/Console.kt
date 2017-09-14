@@ -4,7 +4,7 @@ import info.deskchan.launcher.Localization
 import java.util.*
 
 
-open class Console(private val localization: Localization, private var writeToBuffer: Boolean = false) {
+class Console(private val localization: Localization, private var writeToBuffer: Boolean = false) {
 
     private var lastWrittenString = ""
     private val buffer = mutableListOf<String>()

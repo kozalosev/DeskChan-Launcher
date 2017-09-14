@@ -8,17 +8,16 @@ import java.nio.file.Paths
 class Environment {
 
     val rootDirPath: Path by lazy {
-        val executableDir = Paths.get(javaClass.protectionDomain.codeSource.location.toURI())
-        var directoryPath = executableDir.parent
+        var directoryPath = Paths.get(javaClass.protectionDomain.codeSource.location.toURI()).parent
         while (!Files.isDirectory(directoryPath)) {
             directoryPath = directoryPath.parent
         }
         directoryPath
     }
 
-    val version by lazy { javaClass.`package`.implementationVersion ?: "[UNOFFICIAL DEBUG VERSION]" }
+    val version = javaClass.`package`.implementationVersion ?: "[UNOFFICIAL DEBUG VERSION]"
 
 }
 
 
-val onWindows by lazy { System.getProperty("os.name").startsWith("Windows") }
+val onWindows = System.getProperty("os.name").startsWith("Windows")

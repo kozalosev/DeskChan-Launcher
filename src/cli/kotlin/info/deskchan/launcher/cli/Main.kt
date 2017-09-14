@@ -5,29 +5,28 @@ import info.deskchan.launcher.versioning.VersionResolver
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.net.URL
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.system.exitProcess
 
 
-private object getLocalizationFactory {
-    private val localizationFactory by lazy { LocalizationFactory(javaClass.`package`.name) }
-    operator fun invoke() = localizationFactory
-}
-private val localizationFactory = getLocalizationFactory()
+internal const val LAUNCHER_FILENAME = "dcl"
 
+private val localizationFactory = getLocalizationFactory()
 internal var localization = localizationFactory.getLocalization()
 
 internal var view = Console(localization, writeToBuffer = true)
     private set
 
 
+// MAIN BLOCK
+
 fun main(args: Array<String>) {
     val settings = parseArguments(args)
-    // val installationPath = settings.installationPath.resolve(APPLICATION_NAME)
-    val installationPath = env.rootDirPath.resolve(APPLICATION_NAME)
-    val execFilePath = getExecFilePath(installationPath)
+    val installationPath = settings.installationPath.resolve(APPLICATION_NAME)
+    var launcherExecFilePath = getLauncherExecFilePath()
 
     checkLocale(settings.locale)
 
@@ -57,31 +56,33 @@ fun main(args: Array<String>) {
         view.warn("warn.new_launcher_available", url)
     }
     view.info("info.working_directory", env.rootDirPath)
-    // view.info("info.installation_directory", installationPath.toString())
 
     val installedVersion = deskChanResolver.installedVersion
     installedVersion?.let {
         view.info("info.installed_version", it)
     }
 
-    var shouldSetAutorun: Boolean = settings.autorun && !settings.noAutorun
     if (deskChanResolver.isUpdateNeeded) {
         if (!install(settings, deskChanResolver, installationPath)) {
             return
         }
-        if (!shouldSetAutorun) {
-            shouldSetAutorun = askUser("input.should_run_at_startup")
+        if (settings.installationPath != env.rootDirPath) {
+            launcherExecFilePath = copyLauncherAndGetExecutable(settings.installationPath) ?: return
         }
     } else {
         view.info("info.latest_already_installed")
     }
 
-    if (shouldSetAutorun) {
-        view.info("info.setting_autorun_up")
-        setAutorunUp(execFilePath)
+    when {
+        settings.autorun -> enableAutorun(launcherExecFilePath)
+        settings.noAutorun -> disableAutorun(launcherExecFilePath)
+        deskChanResolver.isUpdateNeeded -> if (askUser("input.should_run_at_startup")) {
+            enableAutorun(launcherExecFilePath)
+        }
     }
 
     view.important("important.launching")
+    val execFilePath = getExecFilePath(installationPath)
     try {
         launchApplication(execFilePath)
     } catch (e: FileNotFoundException) {
@@ -91,6 +92,25 @@ fun main(args: Array<String>) {
     exitAfterDelay(settings.delay)
 }
 
+// END MAIN BLOCK
+
+
+private fun copyLauncherAndGetExecutable(path: Path): Path? {
+    var launcherExecFilePath: Path? = null
+    env.rootDirPath.toFile()
+            .listFiles { file, _ -> file.nameWithoutExtension in listOf(CORE_FILENAME, LAUNCHER_FILENAME) }
+            .forEach {
+                val newFile = path.resolve(it.name).toFile()
+                it.copyTo(newFile, overwrite = true)
+                if (it.name == getLauncherExecFilePath().fileName.toString()) {
+                    launcherExecFilePath = it.toPath()
+                }
+            }
+    if (launcherExecFilePath == null) {
+        view.important("important.no_launcher_after_copying")
+    }
+    return launcherExecFilePath
+}
 
 private fun checkLocale(tag: String, useBufferedView: Boolean = false) {
     if (localization.languageTag == tag) {
@@ -113,6 +133,7 @@ private fun checkLocale(tag: String, useBufferedView: Boolean = false) {
 
 private fun install(settings: Settings, deskChanResolver: VersionResolver, installationPath: Path): Boolean {
     view.info("info.installation_required")
+    view.info("info.installation_directory", installationPath.toString())
     settings.delay *= 2
 
     val downloader: Installer
@@ -140,6 +161,15 @@ private fun install(settings: Settings, deskChanResolver: VersionResolver, insta
         exitAfterDelay(settings.delay, ExitStatus.INSTALLATION_FAILED)
         return false
     }
+    if (!settings.preserveDistributive) {
+        try {
+            view.info("info.removing_archive")
+            Files.delete(downloader.distribution.toPath())
+        } catch (e: IOException) {
+            view.warn("warn.could_not_delete_archive")
+            view.log(e)
+        }
+    }
     view.info("info.success")
 
     return true
@@ -150,6 +180,16 @@ private fun askUser(question: String): Boolean {
     val answer = view.input(question, listOf("Y", "N"))
     view.blank()
     return answer.isNotEmpty() && answer[0].toLowerCase() == 'y'
+}
+
+private fun enableAutorun(launcherExecFilePath: Path) {
+    view.info("info.setting_autorun_up")
+    setAutorunUp(launcherExecFilePath)
+}
+
+private fun disableAutorun(launcherExecFilePath: Path) {
+    view.info("info.resetting_autorun")
+    resetAutorun(launcherExecFilePath)
 }
 
 private fun exitAfterDelay(quitDelay: Number, status: ExitStatus = ExitStatus.OK) {

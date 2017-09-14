@@ -1,6 +1,7 @@
 package info.deskchan.launcher.cli
 
 import info.deskchan.launcher.ExitStatus
+import info.deskchan.launcher.env
 import info.deskchan.launcher.exitProcess
 import org.kohsuke.args4j.CmdLineException
 import org.kohsuke.args4j.CmdLineParser
@@ -12,39 +13,41 @@ import java.util.*
 
 class Settings {
 
-    @Option(name = "--deskchan-update-required")
-    var justShowDeskChanUpdateRequired: Boolean = false
+    @Option(name = "--deskchan-update-required", usage = "description.deskchan_update_required")
+    var justShowDeskChanUpdateRequired = false
         private set
 
-    @Option(name = "--launcher-update-required")
-    var justShowLauncherUpdateRequired: Boolean = false
+    @Option(name = "--launcher-update-required", usage = "description.launcher_update_required")
+    var justShowLauncherUpdateRequired = false
         private set
 
-    @Option(name = "--deskchan-version")
-    var justShowDeskChanVersion: Boolean = false
+    @Option(name = "--deskchan-version", usage = "description.deskchan_version")
+    var justShowDeskChanVersion = false
         private set
 
-    @Option(name = "--launcher-version")
-    var justShowLauncherVersion: Boolean = false
+    @Option(name = "--launcher-version", usage = "description.launcher_version")
+    var justShowLauncherVersion = false
         private set
 
-    // TODO: implement the capability to change the installation path
-    // @Option(name = "--path", aliases = arrayOf("-o"), usage = "description.path")
-    // var installationPath: Path = env.rootDirPath
-    //     private set
+     @Option(name = "--path", aliases = arrayOf("-o"), usage = "description.path")
+     var installationPath = env.rootDirPath
+         private set
 
-    @Option(name = "--locale", aliases = arrayOf("--lang", "-l"))
+    @Option(name = "--locale", aliases = arrayOf("--lang", "-l"), usage = "description.locale")
     var locale: String = Locale.getDefault().toLanguageTag()
         private set
 
-    @Option(name = "--delay", aliases = arrayOf("-w"))
-    var delay: Int = 5
+    @Option(name = "--delay", aliases = arrayOf("-w"), usage = "description.delay")
+    var delay = 5
 
-    @Option(name = "--autorun")
-    var autorun: Boolean = false
+    @Option(name = "--autorun", usage = "description.autorun")
+    var autorun = false
 
-    @Option(name = "--no-autorun")
-    var noAutorun: Boolean = false
+    @Option(name = "--no-autorun", usage = "description.no_autorun")
+    var noAutorun = false
+
+    @Option(name = "--preserve-distributive", aliases = arrayOf("-pd"), usage = "description.preserve_distributive")
+    var preserveDistributive = false
 
 }
 

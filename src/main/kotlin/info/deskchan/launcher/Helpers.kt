@@ -11,7 +11,14 @@ fun getExecFilePath(rootDirPath: Path): Path {
     return rootDirPath.resolve("bin/$APPLICATION_NAME$extension")
 }
 
-fun setAutorunUp(execFilePath: Path) = getAutorunManager(APPLICATION_NAME, execFilePath).setAutorunUp()
+fun setAutorunUp(execFilePath: Path) {
+    execFilePath.toFile().setExecutable(true)
+    getAutorunManager(APPLICATION_NAME, execFilePath).setAutorunUp()
+}
+
+fun resetAutorun(execFilePath: Path) {
+    getAutorunManager(APPLICATION_NAME, execFilePath).resetAutorun()
+}
 
 @Throws(IOException::class)
 fun launchApplication(execFilePath: Path) {

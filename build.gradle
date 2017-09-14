@@ -57,6 +57,12 @@ sourceSets {
     }
 }
 
+run {
+    sourceSets.forEach {
+        classpath += it.runtimeClasspath
+    }
+}
+
 static String buildMainClassName(String module = null) {
     def builder = new StringBuilder('info.deskchan.launcher')
     if (module != null) {
@@ -89,7 +95,7 @@ shadowJar {
     version = null
 }
 
-task cliJar(type: Jar) {
+task cliJar(type: Jar, group: applicationName) {
     baseName = applicationName
     classifier = 'CLI'
 
@@ -105,12 +111,12 @@ task cliJar(type: Jar) {
                            'Implementation-Version': it.version ?: project.version
 }
 
-task copyCommonJar(type: Copy, dependsOn: shadowJar) {
+task copyCoreJar(type: Copy, dependsOn: shadowJar, group: applicationName) {
     from shadowJar.archivePath
     into launch4jDir
 }
 
-task createConsoleExe(type: Launch4jLibraryTask) {
+task createConsoleExe(type: Launch4jLibraryTask, group: applicationName) {
     inputs.file(cliJar.outputs)
 
     outfile = "${shortAppName}.exe"
@@ -123,17 +129,24 @@ task createConsoleExe(type: Launch4jLibraryTask) {
     classpath += shadowJar.archiveName
 }
 
-task createStartScriptsForConsoleExe(type: MyStartScripts) {
+task createStartScriptsForConsoleExe(type: MyStartScripts, group: applicationName) {
     outputDir = file(launch4jDir)
     mainClassName = createConsoleExe.mainClassName
     applicationName = shortAppName
     classpath = files(createConsoleExe.outfile, shadowJar.archiveName)
 }
 
-task createExeDistZip(type: Zip, dependsOn: [copyCommonJar, createConsoleExe,
-                                             createStartScriptsForConsoleExe]) {
+task wrapFilesWithDir(type: Copy, group: applicationName,
+        dependsOn: [copyCoreJar, createConsoleExe, createStartScriptsForConsoleExe]) {
+    description "Used to create a ZIP-archive with a directory at the top level."
+
     from launch4jDir
-    include '**/*'
+    into "$buildDir/$fullAppName"
+}
+
+task buildDistZip(type: Zip, dependsOn: wrapFilesWithDir, group: applicationName) {
+    from buildDir
+    include "${wrapFilesWithDir.destinationDir.name}/*"
     archiveName "${fullAppName}.zip"
     destinationDir file(distsDir)
 }

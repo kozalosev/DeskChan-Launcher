@@ -2,6 +2,7 @@ package info.deskchan.launcher.cli
 
 import info.deskchan.launcher.util.CallbackByteChannel
 import info.deskchan.launcher.ZipInstallerEventListeners
+import java.nio.file.Path
 
 
 fun getEventListeners(progressBarLength: Int = 20) = object : ZipInstallerEventListeners {
@@ -37,17 +38,12 @@ fun getEventListeners(progressBarLength: Int = 20) = object : ZipInstallerEventL
         view.log(e)
     }
 
+    override fun switchedToTempDir(newPath: Path) = view.warn("warn.switched_to_temp_dir", newPath.toString())
+
     override fun extraction() = view.info("info.extracting_files")
 
     override fun extractionFailed(e: Throwable) {
         view.warn("warn.extracting_error")
-        view.log(e)
-    }
-
-    override fun deletion() = view.info("info.removing_archive")
-
-    override fun deletionFailed(e: Throwable) {
-        view.warn("warn.could_not_delete_archive")
         view.log(e)
     }
 

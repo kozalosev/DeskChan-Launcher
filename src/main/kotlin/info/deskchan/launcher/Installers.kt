@@ -15,6 +15,7 @@ import java.nio.file.Path
 
 
 interface Installer {
+    val distribution: File
     fun install(url: URL, version: String)
 }
 
@@ -37,7 +38,7 @@ abstract class BaseInstaller(private val dir: Path, private val manifestFilename
     init {
         if (!Files.isDirectory(dir)) {
             if (Files.notExists(dir)) {
-                if (!dir.toFile().mkdir()) {
+                if (!dir.toFile().mkdirs()) {
                     throw CouldNotCreateDirectoryException()
                 }
             } else {
@@ -111,16 +112,24 @@ abstract class InternetInstaller(dir: Path, manifestFilename: String, private va
 
 
 interface ZipInstallerEventListeners : InstallerEventListeners {
+    fun switchedToTempDir(newPath: Path) {}
     fun extraction() {}
     fun extractionFailed(e: Throwable) {}
-
-    fun deletion() {}
-    fun deletionFailed(e: Throwable) {}
 }
 
 
 class ZipInstaller(private val dir: Path, manifestFilename: String, private val listeners: ZipInstallerEventListeners)
     : InternetInstaller(dir, manifestFilename, listeners = listeners) {
+
+    private var _distribution: File? = null
+
+    override val distribution: File
+        get() {
+            if (_distribution == null) {
+                throw IllegalStateException("Attempt to get a distributive file before invoking installation!")
+            }
+            return _distribution as File
+        }
 
     private fun extract(zip: File) {
         listeners.extraction()
@@ -129,28 +138,25 @@ class ZipInstaller(private val dir: Path, manifestFilename: String, private val 
         file.extractAll(dir.toString())
     }
 
-    private fun delete(zip: File) {
-        listeners.deletion()
-
-        try {
-            Files.delete(zip.toPath())
-        } catch (e: IOException) {
-            listeners.deletionFailed(e)
-        }
-    }
-
     @Throws(IOException::class, ZipException::class)
     override fun install(url: URL, version: String) {
-        val zip = env.rootDirPath.resolve("$version.zip").toFile()
+
+        _distribution = if (env.rootDirPath.toFile().canWrite()) {
+            env.rootDirPath.resolve("$version.zip").toFile()
+        } else {
+            val tempFile = File.createTempFile(version, ".zip")
+            listeners.switchedToTempDir(tempFile.toPath())
+            tempFile
+        }
+
         try {
-            download(url, zip)
-            extract(zip)
+            download(url, distribution)
+            extract(distribution)
         } catch (e: ZipException) {
             listeners.extractionFailed(e)
-            download(url, zip, false)
-            extract(zip)
+            download(url, distribution, false)
+            extract(distribution)
         }
-        delete(zip)
         generateVersionManifest(version)
     }
 
