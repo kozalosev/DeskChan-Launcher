@@ -48,8 +48,10 @@ class GitHubVersionRequester(repo: Repository) : VersionRequester {
     private fun parseLatestVersion(json: JSONArray): Release {
         val latest = json.getJSONObject(0)
         val version = latest.getString("name")
-        val archive = latest.getJSONArray("assets").getJSONObject(0).getString("browser_download_url")
-        return Release(version, URL(archive))
+        val asset = latest.getJSONArray("assets").getJSONObject(0)
+        val archive = asset.getString("browser_download_url")
+        val size = asset.getLong("size")
+        return Release(version, URL(archive), size)
     }
 
     override fun getReleaseInfo() = requester.parse(this::parseLatestVersion)
@@ -84,6 +86,6 @@ class InstalledVersionRequester(private val rootDirPath: Path, private val manif
 }
 
 
-data class Release(val version: String, val url: URL? = null) {
+data class Release(val version: String, val url: URL? = null, val size: Long? = null) {
     val versionObject: Version? = parseVersion(version)
 }

@@ -1,9 +1,10 @@
 import edu.sc.seis.launch4j.tasks.Launch4jLibraryTask
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.internal.plugins.StartScriptGenerator
 import java.util.stream.Collectors
 
-version 'v0.1.0-dev'
-ext.defaultModule = 'cli'
+version 'v0.1.1-dev'
+ext.defaultModule = 'javafx'
 
 // At first, the application is assembled to this directory. And only then it packs into a zip file.
 ext.launch4jDir = "$buildDir/launch4j"
@@ -33,12 +34,22 @@ repositories {
     jcenter()
 }
 
+sourceSets {
+    def modules = [
+            cli,
+            javafx
+    ]
+    modules.forEach {
+        it.compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+    }
+}
+
 dependencies {
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jre8', version: kotlin_version
     compile group: 'org.json', name: 'json', version: '20170516'
     compile group: 'net.lingala.zip4j', name: 'zip4j', version: '1.3.2'
     compile group: 'com.github.sarxos', name: 'windows-registry-util', version: '0.3'
-    compile group: 'args4j', name: 'args4j', version: '2.33'
+    cliCompile group: 'args4j', name: 'args4j', version: '2.33'
 }
 
 compileKotlin {
@@ -48,27 +59,18 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 
-sourceSets {
-    def modules = [
-        cli
-    ]
-    modules.forEach {
-        it.compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
-    }
-}
-
 run {
     sourceSets.forEach {
         classpath += it.runtimeClasspath
     }
 }
 
-static String buildMainClassName(String module = null) {
+static String buildMainClassName(String module = null, String mainClass = "MainKt") {
     def builder = new StringBuilder('info.deskchan.launcher')
     if (module != null) {
         builder.append('.' + module)
     }
-    builder.append('.MainKt')
+    builder.append(".$mainClass")
     return builder.toString()
 }
 
@@ -95,18 +97,30 @@ shadowJar {
     version = null
 }
 
-task cliJar(type: Jar, group: applicationName) {
+task cliJar(type: ShadowJar, group: applicationName) {
     baseName = applicationName
     classifier = 'CLI'
 
     from (sourceSets.cli.output) {
         include '**/*'
     }
+    configurations = [project.configurations.cliCompile]
 
     manifest.attributes 'Main-Class': buildMainClassName('cli')
 }
 
-[shadowJar, cliJar].forEach {
+task javafxJar(type: ShadowJar, group: applicationName) {
+    baseName = applicationName
+    classifier = 'JAVAFX'
+
+    from (sourceSets.javafx.output) {
+        include '**/*'
+    }
+
+    manifest.attributes 'Main-Class': buildMainClassName('javafx', 'JavaFxApplication')
+}
+
+[shadowJar, cliJar, javafxJar].forEach {
     it.manifest.attributes 'Implementation-Title'  : "${it.baseName}-${it.classifier}",
                            'Implementation-Version': it.version ?: project.version
 }
@@ -121,12 +135,27 @@ task createConsoleExe(type: Launch4jLibraryTask, group: applicationName) {
 
     outfile = "${shortAppName}.exe"
     mainClassName = buildMainClassName('cli')
-    copyConfigurable = files()
     jar = "$libsDir/${tasks.cliJar.archiveName}"
-    icon = file("$projectDir/appicon.ico")
+    icon = file("$projectDir/icons/cli.ico")
     headerType = 'console'
-    productName = internalName = fileDescription = applicationName
-    classpath += shadowJar.archiveName
+}
+
+task createJavafxExe(type: Launch4jLibraryTask, group: applicationName) {
+    inputs.file(javafxJar.outputs)
+
+    outfile = "${applicationName}.exe"
+    mainClassName = buildMainClassName('javafx', 'JavaFxApplication')
+    jar = "$libsDir/${tasks.javafxJar.archiveName}"
+    icon = file("$projectDir/icons/javafx.ico")
+
+    // Can make debugging simpler.
+    // headerType = 'console'
+}
+
+[createConsoleExe, createJavafxExe].forEach {
+    it.copyConfigurable = files()
+    it.productName = it.internalName = it.fileDescription = applicationName
+    it.classpath += shadowJar.archiveName
 }
 
 task createStartScriptsForConsoleExe(type: MyStartScripts, group: applicationName) {
@@ -136,8 +165,17 @@ task createStartScriptsForConsoleExe(type: MyStartScripts, group: applicationNam
     classpath = files(createConsoleExe.outfile, shadowJar.archiveName)
 }
 
+task createStartScriptsForJavafxExe(type: MyStartScripts, group: applicationName) {
+    outputDir = file(launch4jDir)
+    mainClassName = createJavafxExe.mainClassName
+    applicationName = project.applicationName
+    classpath = files(createJavafxExe.outfile, shadowJar.archiveName)
+}
+
 task wrapFilesWithDir(type: Copy, group: applicationName,
-        dependsOn: [copyCoreJar, createConsoleExe, createStartScriptsForConsoleExe]) {
+        dependsOn: [copyCoreJar,
+                    createConsoleExe, createJavafxExe,
+                    createStartScriptsForConsoleExe, createStartScriptsForJavafxExe]) {
     description "Used to create a ZIP-archive with a directory at the top level."
 
     from launch4jDir

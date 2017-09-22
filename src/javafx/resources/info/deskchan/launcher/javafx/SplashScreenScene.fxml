@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.VBox?>
+
+
+<VBox alignment="CENTER" maxHeight="300.0" minHeight="300.0" spacing="15.0"
+      xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="info.deskchan.launcher.javafx.SplashScreenController">
+    <ImageView fitHeight="194.0" fitWidth="200.0">
+        <Image url="@logo.png" />
+    </ImageView>
+    <Label styleClass="header" text="${controller.applicationName}" />
+    <Label fx:id="splashScreenStatus" />
+
+    <stylesheets>
+        <URL value="@styles.css" />
+    </stylesheets>
+    <padding>
+       <Insets left="15.0" right="15.0" />
+    </padding>
+</VBox>

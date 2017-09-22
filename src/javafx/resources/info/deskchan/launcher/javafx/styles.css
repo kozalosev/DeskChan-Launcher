@@ -1,0 +1,8 @@
+.header {
+    -fx-font-weight: bold;
+    -fx-font-size: 150%
+}
+
+.list-cell {
+    -fx-background: white;
+}

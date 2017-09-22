@@ -17,6 +17,7 @@ import java.nio.file.Path
 interface Installer {
     val distribution: File
     fun install(url: URL, version: String)
+    fun provideSize(size: Long)
 }
 
 
@@ -25,15 +26,21 @@ interface InstallerEventListeners {
     fun downloadingProgress(channel: CallbackByteChannel, progress: Double, size: Long)
     fun afterDownloading() {}
 
+    fun distributionFound(path: Path) {}
     fun partFound(size: Long) {}
     fun noSize(size: Long) {}
 
     fun manifestGenerating() {}
     fun manifestGeneratingFailed(e: Throwable) {}
+
+    fun installed(installer: Installer) {}
+    fun installationFailed(e: Throwable) {}
 }
 
 
 abstract class BaseInstaller(private val dir: Path, private val manifestFilename: String) : Installer {
+
+    var size: Long = 0
 
     init {
         if (!Files.isDirectory(dir)) {
@@ -45,6 +52,10 @@ abstract class BaseInstaller(private val dir: Path, private val manifestFilename
                 throw NotDirectoryException()
             }
         }
+    }
+
+    override fun provideSize(size: Long) {
+        this.size = size
     }
 
     @Throws(IOException::class)
@@ -69,6 +80,10 @@ abstract class InternetInstaller(dir: Path, manifestFilename: String, private va
 
         val useResuming = resumeIfPossible && file.exists()
         if (useResuming) {
+            if (this.size != 0L && this.size == file.length()) {
+                listeners.distributionFound(file.toPath())
+                return
+            }
             listeners.partFound(file.length())
             connection.setRequestProperty("Range", "bytes=${file.length()}-")
         }
@@ -140,7 +155,6 @@ class ZipInstaller(private val dir: Path, manifestFilename: String, private val 
 
     @Throws(IOException::class, ZipException::class)
     override fun install(url: URL, version: String) {
-
         _distribution = if (env.rootDirPath.toFile().canWrite()) {
             env.rootDirPath.resolve("$version.zip").toFile()
         } else {
@@ -149,15 +163,21 @@ class ZipInstaller(private val dir: Path, manifestFilename: String, private val 
             tempFile
         }
 
-        try {
-            download(url, distribution)
-            extract(distribution)
-        } catch (e: ZipException) {
-            listeners.extractionFailed(e)
-            download(url, distribution, false)
+        fun downloadAndExtract(resumeIfPossible: Boolean) {
+            download(url, distribution, resumeIfPossible)
             extract(distribution)
         }
+        try {
+            downloadAndExtract(true)
+        } catch (e: IOException) {
+            listeners.installationFailed(e)
+            downloadAndExtract(false)
+        } catch (e: ZipException) {
+            listeners.extractionFailed(e)
+            downloadAndExtract(false)
+        }
         generateVersionManifest(version)
+        listeners.installed(this)
     }
 
 }

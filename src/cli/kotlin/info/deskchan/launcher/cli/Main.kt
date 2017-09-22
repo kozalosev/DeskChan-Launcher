@@ -63,10 +63,20 @@ fun main(args: Array<String>) {
     }
 
     if (deskChanResolver.isUpdateNeeded) {
+        if (settings.installationPath != env.rootDirPath) {
+            val dir = settings.installationPath.toFile()
+            if (dir.exists() && dir.list().isNotEmpty() && !askUser("input.install_to_existing_dir")) {
+                exitAfterDelay(settings.delay)
+                return
+            }
+        }
+
         if (!install(settings, deskChanResolver, installationPath)) {
+            exitAfterDelay(settings.delay)
             return
         }
         if (settings.installationPath != env.rootDirPath) {
+            view.info("info.copying_launcher")
             launcherExecFilePath = copyLauncherAndGetExecutable(settings.installationPath) ?: return
         }
     } else {
@@ -76,41 +86,27 @@ fun main(args: Array<String>) {
     when {
         settings.autorun -> enableAutorun(launcherExecFilePath)
         settings.noAutorun -> disableAutorun(launcherExecFilePath)
-        deskChanResolver.isUpdateNeeded -> if (askUser("input.should_run_at_startup")) {
-            enableAutorun(launcherExecFilePath)
-        }
+        deskChanResolver.isUpdateNeeded && deskChanResolver.installedVersion == null ->
+            if (askUser("input.should_run_at_startup")) {
+                enableAutorun(launcherExecFilePath)
+            }
     }
 
     view.important("important.launching")
     val execFilePath = getExecFilePath(installationPath)
-    try {
+    val status = try {
         launchApplication(execFilePath)
+        ExitStatus.OK
     } catch (e: FileNotFoundException) {
         view.important("important.could_not_find_executable", execFilePath.toString())
         view.log(e)
+        ExitStatus.EXECUTABLE_NOT_FOUND
     }
-    exitAfterDelay(settings.delay)
+    exitAfterDelay(settings.delay, status)
 }
 
 // END MAIN BLOCK
 
-
-private fun copyLauncherAndGetExecutable(path: Path): Path? {
-    var launcherExecFilePath: Path? = null
-    env.rootDirPath.toFile()
-            .listFiles { file, _ -> file.nameWithoutExtension in listOf(CORE_FILENAME, LAUNCHER_FILENAME) }
-            .forEach {
-                val newFile = path.resolve(it.name).toFile()
-                it.copyTo(newFile, overwrite = true)
-                if (it.name == getLauncherExecFilePath().fileName.toString()) {
-                    launcherExecFilePath = it.toPath()
-                }
-            }
-    if (launcherExecFilePath == null) {
-        view.important("important.no_launcher_after_copying")
-    }
-    return launcherExecFilePath
-}
 
 private fun checkLocale(tag: String, useBufferedView: Boolean = false) {
     if (localization.languageTag == tag) {
@@ -150,6 +146,8 @@ private fun install(settings: Settings, deskChanResolver: VersionResolver, insta
         exitAfterDelay(settings.delay, ExitStatus.INVALID_INSTALLATION_PATH)
         return false
     }
+    downloader.provideSize(deskChanResolver.latestVersionSize)
+
     val url = deskChanResolver.latestVersionUrl ?: URL(DEFAULT_DOWNLOAD_URL)
     val version = deskChanResolver.latestVersion.toString()
     view.info("info.install_version", version)
@@ -161,7 +159,7 @@ private fun install(settings: Settings, deskChanResolver: VersionResolver, insta
         exitAfterDelay(settings.delay, ExitStatus.INSTALLATION_FAILED)
         return false
     }
-    if (!settings.preserveDistributive) {
+    if (!settings.preserveDistribution) {
         try {
             view.info("info.removing_archive")
             Files.delete(downloader.distribution.toPath())
@@ -173,6 +171,23 @@ private fun install(settings: Settings, deskChanResolver: VersionResolver, insta
     view.info("info.success")
 
     return true
+}
+
+private fun copyLauncherAndGetExecutable(path: Path): Path? {
+    var launcherExecFilePath: Path? = null
+    env.rootDirPath.toFile()
+            .listFiles { file -> file.nameWithoutExtension in setOf(CORE_FILENAME, LAUNCHER_FILENAME) }
+            .forEach {
+                val newFile = path.resolve(it.name).toFile()
+                it.copyTo(newFile, overwrite = true)
+                if (it.name == getLauncherExecFilePath().fileName.toString()) {
+                    launcherExecFilePath = it.toPath()
+                }
+            }
+    if (launcherExecFilePath == null) {
+        view.important("important.no_launcher_after_copying")
+    }
+    return launcherExecFilePath
 }
 
 private fun askUser(question: String): Boolean {

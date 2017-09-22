@@ -13,6 +13,7 @@ interface VersionResolver {
 
     val latestVersion: Any?
     val latestVersionUrl: URL?
+    val latestVersionSize: Long
 
     val installedVersion: Any?
 }
@@ -21,6 +22,7 @@ interface VersionResolver {
 abstract class BaseVersionResolver(latestRelease: Release?) : VersionResolver {
     override val latestVersion = latestRelease?.versionObject ?: latestRelease?.version
     override val latestVersionUrl = latestRelease?.url
+    override val latestVersionSize = latestRelease?.size ?: 0
 }
 
 

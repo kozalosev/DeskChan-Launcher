@@ -46,8 +46,8 @@ class Settings {
     @Option(name = "--no-autorun", usage = "description.no_autorun")
     var noAutorun = false
 
-    @Option(name = "--preserve-distributive", aliases = arrayOf("-pd"), usage = "description.preserve_distributive")
-    var preserveDistributive = false
+    @Option(name = "--preserve-distribution", aliases = arrayOf("-pd"), usage = "description.preserve_distribution")
+    var preserveDistribution = false
 
 }
 

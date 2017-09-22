@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+
+
+<AnchorPane minWidth="350" minHeight="230" prefWidth="420" prefHeight="230" fx:controller="info.deskchan.launcher.javafx.SettingsController"
+            xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" >
+      <Label text="%setup.description" wrapText="true"
+             AnchorPane.bottomAnchor="115.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0" />
+      <HBox spacing="5.0" AnchorPane.bottomAnchor="80.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0">
+            <Label text="%choose_dir.label" HBox.hgrow="ALWAYS" />
+            <TextField fx:id="installationPathTextField" HBox.hgrow="ALWAYS" />
+            <Button mnemonicParsing="false" text="%choose_dir.button" onAction="#showChooser" HBox.hgrow="ALWAYS" />
+      </HBox>
+      <CheckBox fx:id="autorunEnabledCheckBox" mnemonicParsing="false" text="%checkbox.label"
+                AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="10.0" />
+      <HBox alignment="CENTER" spacing="30.0"
+            AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0">
+            <Button text="%button.install" onAction="#moveToInstallation" />
+            <Button text="%button.close" onAction="#quit" />
+      </HBox>
+</AnchorPane>

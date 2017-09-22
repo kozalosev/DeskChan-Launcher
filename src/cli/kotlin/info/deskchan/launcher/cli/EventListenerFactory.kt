@@ -2,12 +2,15 @@ package info.deskchan.launcher.cli
 
 import info.deskchan.launcher.util.CallbackByteChannel
 import info.deskchan.launcher.ZipInstallerEventListeners
+import info.deskchan.launcher.util.ByteSizeStringConverter
 import java.nio.file.Path
 
 
 fun getEventListeners(progressBarLength: Int = 20) = object : ZipInstallerEventListeners {
 
-    override fun partFound(size: Long) = view.info("info.part_of_archive_found", size.toHumanReadableString())
+    override fun distributionFound(path: Path) = view.info("info.distribution_found", path.toString())
+
+    override fun partFound(size: Long) = view.info("info.part_of_archive_found", ByteSizeStringConverter(size).toString())
 
     override fun noSize(size: Long) = view.warn("warn.could_not_determine_size")
 
@@ -15,7 +18,7 @@ fun getEventListeners(progressBarLength: Int = 20) = object : ZipInstallerEventL
 
     override fun downloadingProgress(channel: CallbackByteChannel, progress: Double, size: Long) {
         if (progress < 0) {
-            view.update(channel.readSoFar.toHumanReadableString())
+            view.update(ByteSizeStringConverter(channel.readSoFar).toString())
             return
         }
 
@@ -23,8 +26,8 @@ fun getEventListeners(progressBarLength: Int = 20) = object : ZipInstallerEventL
         val notDownloadedYet = progressBarLength - downloaded
         val progressBar = "=".repeat(downloaded) + "-".repeat(notDownloadedYet)
 
-        val downloadedChunkSize = channel.readSoFar.toHumanReadableString()
-        val totalSize = size.toHumanReadableString()
+        val downloadedChunkSize = ByteSizeStringConverter(channel.readSoFar).toString()
+        val totalSize = ByteSizeStringConverter(size).toString()
 
         view.update("[%s] %6.2f%% (%s / %s)".format(progressBar, progress, downloadedChunkSize, totalSize))
     }
@@ -47,14 +50,8 @@ fun getEventListeners(progressBarLength: Int = 20) = object : ZipInstallerEventL
         view.log(e)
     }
 
-}
-
-
-// http://programming.guide/java/formatting-byte-size-to-human-readable-format.html
-private fun Long.toHumanReadableString(si: Boolean = false): String {
-    val unit = if (si) 1000 else 1024
-    if (this < unit) return "$this B"
-    val exp = (Math.log(this.toDouble()) / Math.log(unit.toDouble())).toInt()
-    val pre = (if (si) "kMGTPE" else "KMGTPE")[exp - 1] + if (si) "" else "i"
-    return "%.1f %sB".format(this / Math.pow(unit.toDouble(), exp.toDouble()), pre)
+    override fun installationFailed(e: Throwable) {
+        view.warn("warn.installation_failed")
+        view.log(e)
+    }
 }
