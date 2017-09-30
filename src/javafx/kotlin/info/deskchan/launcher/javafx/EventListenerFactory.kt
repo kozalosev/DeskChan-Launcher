@@ -8,7 +8,7 @@ import javafx.application.Platform
 import java.nio.file.Path
 
 
-fun getEventListeners(onSuccess: Installer.() -> Unit) = object : ZipInstallerEventListeners {
+internal fun getEventListeners(onSuccess: Installer.() -> Unit) = object : ZipInstallerEventListeners {
 
     private val log = application.installationLog
 

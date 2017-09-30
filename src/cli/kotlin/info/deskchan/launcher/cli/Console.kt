@@ -4,7 +4,7 @@ import info.deskchan.launcher.Localization
 import java.util.*
 
 
-class Console(private val localization: Localization, private var writeToBuffer: Boolean = false) {
+internal class Console(private val localization: Localization, private var writeToBuffer: Boolean = false) {
 
     private var lastWrittenString = ""
     private val buffer = mutableListOf<String>()
@@ -12,11 +12,13 @@ class Console(private val localization: Localization, private var writeToBuffer:
 
 
     fun log(obj: Any?) {
+        System.err.println()
         if (obj is Throwable) {
-            obj.printStackTrace()
+            obj.printStackTrace(System.err)
         } else {
             System.err.println(obj.toString())
         }
+        System.err.println()
     }
 
     fun write(text: String) = printLine(text.localized())
@@ -26,7 +28,7 @@ class Console(private val localization: Localization, private var writeToBuffer:
     fun warn(text: String) = printLine("! ${text.localized()}")
 
     fun important(text: String) {
-        val prefix = if (lastWrittenString.endsWith("\n\n")) "" else "\n"
+        val prefix = if (lastWrittenString.endsWith("\n\n") || lastWrittenString == "\n") "" else "\n"
         printLine("$prefix${text.localized()}\n")
     }
 

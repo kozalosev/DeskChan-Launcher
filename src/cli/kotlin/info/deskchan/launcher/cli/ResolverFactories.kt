@@ -15,7 +15,7 @@ private fun getReleaseFromGitHub(repository: Repository): Release? = try {
     null
 }
 
-fun getDeskChanVersionResolver(deskChanDirPath: Path): VersionResolver {
+internal fun getDeskChanVersionResolver(deskChanDirPath: Path): VersionResolver {
     val latestVersionInfo = getReleaseFromGitHub(APPLICATION_REPOSITORY)
     val installedVersionInfo = try {
         InstalledVersionRequester(deskChanDirPath, MANIFEST_FILENAME).getReleaseInfo()
@@ -30,4 +30,4 @@ fun getDeskChanVersionResolver(deskChanDirPath: Path): VersionResolver {
 }
 
 
-fun getLauncherVersionResolver() = ManifestVersionResolver(getReleaseFromGitHub(LAUNCHER_REPOSITORY), Release(env.version))
+internal fun getLauncherVersionResolver() = ManifestVersionResolver(getReleaseFromGitHub(LAUNCHER_REPOSITORY), Release(env.version))

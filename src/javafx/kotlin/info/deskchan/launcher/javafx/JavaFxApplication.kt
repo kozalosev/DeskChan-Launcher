@@ -22,7 +22,8 @@ import java.util.concurrent.Executors
 import kotlin.properties.Delegates
 
 
-var application: JavaFxApplication by Delegates.notNull()
+internal var application: JavaFxApplication by Delegates.notNull()
+    private set
 internal val localization = getLocalization()
 
 
@@ -62,6 +63,7 @@ class JavaFxApplication : Application() {
 
         val checkingStage = Stage(StageStyle.UNDECORATED)
         checkingStage.scene = splashScreenScene
+        checkingStage.isAlwaysOnTop = true
         checkingStage.show()
 
         runTaskWithinAtLeast(SPLASHSCREEN_DELAY, working_func = {
@@ -91,7 +93,7 @@ class JavaFxApplication : Application() {
                 checkingStage.close()
                 stage.show()
                 if (deskChanVersionResolver.installedVersion != null) {
-                    installationLog.addAll(
+                    logInstallationMessages(
                             "info.installed_version".localize(deskChanVersionResolver.installedVersion.toString(),
                             "info.installation_required".localize()
                     ))
@@ -116,23 +118,26 @@ class JavaFxApplication : Application() {
         val applicationPath = launcherPath.resolve(APPLICATION_NAME)
         val successCallback: Installer.() -> Unit = {
             Platform.runLater {
-                installationLog.add("info.removing_archive".localize())
+                logInstallationMessages("info.removing_archive".localize())
                 distribution.delete()
                 if (launcherPath != env.rootDirPath) {
-                    installationLog.add("info.copying_launcher".localize())
-                    copyLauncherAndGetExecutable(launcherPath)
+                    logInstallationMessages("info.copying_launcher".localize())
+                    copyLauncherTo(launcherPath)
                 }
                 if (autorunEnabled.value) {
-                    installationLog.add("info.setting_autorun_up".localize())
-                    setAutorunUp(getLauncherExecFilePath(launcherPath))
+                    logInstallationMessages("info.setting_autorun_up".localize())
+                    val extension = if (onWindows) ".exe" else ""
+                    val path = launcherPath.resolve("$LAUNCHER_FILENAME$extension")
+                    setAutorunUp(path)
                 }
-                installationLog.add("info.going_to_launch".localize())
+                logInstallationMessages("info.going_to_launch".localize())
             }
 
             runAfter(LAUNCH_DELAY) {
                 Platform.runLater {
                     val splashScreenStage = Stage(StageStyle.UNDECORATED)
                     splashScreenStage.scene = splashScreenScene
+                    splashScreenStage.isAlwaysOnTop = true
                     splashScreenStatus.value = "important.launching".localize()
                     stage.hide()
                     splashScreenStage.show()
@@ -158,7 +163,7 @@ class JavaFxApplication : Application() {
 
         val url = deskChanVersionResolver.latestVersionUrl ?: URL(DEFAULT_DOWNLOAD_URL)
         val version = deskChanVersionResolver.latestVersion.toString()
-        installationLog.addAll(
+        logInstallationMessages(
                 "info.install_version".localize(version),
                 "info.working_directory".localize(env.rootDirPath.toString()),
                 "info.installation_directory".localize(launcherPath.toString())
@@ -175,25 +180,15 @@ class JavaFxApplication : Application() {
 
 }
 
-private fun copyLauncherAndGetExecutable(path: Path): Path? {
-    var launcherExecFilePath: Path? = null
-    env.rootDirPath.toFile()
-            .listFiles { file, _ -> file.nameWithoutExtension in listOf(CORE_FILENAME, LAUNCHER_FILENAME) }
-            .forEach {
-                val newFile = path.resolve(it.name).toFile()
-                it.copyTo(newFile, overwrite = true)
-                if (it.name == getLauncherExecFilePath().fileName.toString()) {
-                    launcherExecFilePath = it.toPath()
-                }
-            }
-    if (launcherExecFilePath == null) {
-        error("important.no_launcher_after_copying")
-    }
-    return launcherExecFilePath
-}
-
 private fun launchApp(execFilePath: Path) = try {
     launchApplication(execFilePath)
 } catch (e: FileNotFoundException) {
     fatalError("important.could_not_find_executable", ExitStatus.EXECUTABLE_NOT_FOUND, execFilePath.toString())
+}
+
+private fun logInstallationMessages(vararg messages: String) {
+    if (messages.isNotEmpty()) {
+        application.installationLog.addAll(messages)
+        messages.forEach(::log)
+    }
 }

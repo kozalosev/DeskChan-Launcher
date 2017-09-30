@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 
 
-class Settings {
+internal class Settings {
 
     @Option(name = "--deskchan-update-required", usage = "description.deskchan_update_required")
     var justShowDeskChanUpdateRequired = false
@@ -52,7 +52,7 @@ class Settings {
 }
 
 
-fun parseArguments(args: Array<String>): Settings {
+internal fun parseArguments(args: Array<String>): Settings {
     val settings = Settings()
     val parser = CmdLineParser(settings)
     try {

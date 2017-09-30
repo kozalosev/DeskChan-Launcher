@@ -6,7 +6,7 @@ import info.deskchan.launcher.util.ByteSizeStringConverter
 import java.nio.file.Path
 
 
-fun getEventListeners(progressBarLength: Int = 20) = object : ZipInstallerEventListeners {
+internal fun getEventListeners(progressBarLength: Int = 20) = object : ZipInstallerEventListeners {
 
     override fun distributionFound(path: Path) = view.info("info.distribution_found", path.toString())
 

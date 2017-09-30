@@ -106,7 +106,8 @@ task cliJar(type: ShadowJar, group: applicationName) {
     }
     configurations = [project.configurations.cliCompile]
 
-    manifest.attributes 'Main-Class': buildMainClassName('cli')
+    manifest.attributes 'Main-Class': buildMainClassName('cli'),
+                        'Launcher-Module': true
 }
 
 task javafxJar(type: ShadowJar, group: applicationName) {
@@ -117,7 +118,8 @@ task javafxJar(type: ShadowJar, group: applicationName) {
         include '**/*'
     }
 
-    manifest.attributes 'Main-Class': buildMainClassName('javafx', 'JavaFxApplication')
+    manifest.attributes 'Main-Class': buildMainClassName('javafx', 'JavaFxApplication'),
+                        'Launcher-Module': true
 }
 
 [shadowJar, cliJar, javafxJar].forEach {

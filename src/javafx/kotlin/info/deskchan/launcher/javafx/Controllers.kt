@@ -13,14 +13,14 @@ import javafx.util.Callback
 import java.nio.file.Paths
 
 
-abstract class BaseController {
+internal abstract class BaseController {
     @FXML private fun quit() {
         exitProcess(ExitStatus.OK)
     }
 }
 
 
-class SplashScreenController {
+internal class SplashScreenController {
 
     private val _applicationName: ReadOnlyStringProperty = SimpleStringProperty(application.applicationName)
 
@@ -38,7 +38,7 @@ class SplashScreenController {
 }
 
 
-class SettingsController : BaseController() {
+internal class SettingsController : BaseController() {
 
     @FXML lateinit var installationPathTextField: TextField
     @FXML lateinit var autorunEnabledCheckBox: CheckBox
@@ -77,7 +77,7 @@ class SettingsController : BaseController() {
 }
 
 
-class InstallationController : BaseController() {
+internal class InstallationController : BaseController() {
 
     var progress: Double?
         get() = application.progress.value

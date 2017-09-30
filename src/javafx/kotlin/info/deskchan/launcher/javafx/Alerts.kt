@@ -9,7 +9,9 @@ import javafx.scene.control.ButtonType.*
 
 
 private fun showAlert(message: String, type: Alert.AlertType, vararg vars: Any) = Platform.runLater {
-    val alert = Alert(type, message.localize(*vars), OK)
+    val localizedMessage = message.localize(*vars)
+    log(localizedMessage)
+    val alert = Alert(type, localizedMessage, OK)
     alert.show()
 }
 
@@ -17,8 +19,10 @@ internal fun warn(message: String, vararg vars: Any) = showAlert(message, WARNIN
 internal fun error(message: String, vararg vars: Any) = showAlert(message, ERROR, *vars)
 
 internal fun fatalError(message: String, status: ExitStatus, vararg vars: Any): Nothing {
+    val localizedMessage = message.localize(*vars)
+    log(localizedMessage)
     Platform.runLater {
-        val alert = Alert(ERROR, message.localize(*vars), OK)
+        val alert = Alert(ERROR, localizedMessage, OK)
         alert.showAndWait()
         exitProcess(status)
     }

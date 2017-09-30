@@ -24,14 +24,14 @@ data class SemanticVersion(override val major: Int, override val minor: Int, ove
 
     companion object Builder {
         fun fromString(version: String): SemanticVersion? {
-            val expr = "v([0-9]+)\\.([0-9]+)\\.([0-9]+)(-(.+))?".toRegex()
+            val expr = "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)(-(.+))?$".toRegex()
             val matches = expr.matchEntire(version)?.groups
                     ?: return null
 
             val major = matches[1]!!.value.toInt()
             val minor = matches[2]!!.value.toInt()
             val patch = matches[3]!!.value.toInt()
-            val specifier = if (matches.size >= 6) matches[5]!!.value else null
+            val specifier = matches[5]?.value
 
             return SemanticVersion(major, minor, patch, specifier)
         }
@@ -49,7 +49,7 @@ data class CommitVersion(override val major: Int, override val minor: Int, overr
 
     companion object Builder {
         fun fromString(version: String): Version? {
-            val expr = "v([0-9]+)\\.([0-9]+)\\.([0-9]+)-r([0-9]+)".toRegex()
+            val expr = "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)-r([0-9]+)$".toRegex()
             val matches = expr.matchEntire(version)?.groups
                     ?: return null
 
@@ -76,7 +76,8 @@ data class CommitVersion(override val major: Int, override val minor: Int, overr
 
 
 fun parseVersion(version: String): Version? {
-    listOf(SemanticVersion.Builder::fromString, CommitVersion.Builder::fromString).forEach {
+    // We must be careful because SemanticVersion always swallows CommitVersion but not vice versa.
+    linkedSetOf(CommitVersion.Builder::fromString, SemanticVersion.Builder::fromString).forEach {
         val obj = it(version)
         obj?.let { return obj }
     }

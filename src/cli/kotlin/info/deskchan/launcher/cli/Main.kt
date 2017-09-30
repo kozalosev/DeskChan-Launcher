@@ -14,6 +14,10 @@ import kotlin.system.exitProcess
 
 internal const val LAUNCHER_FILENAME = "dcl"
 
+internal object getLocalizationFactory {
+    private val localizationFactory by lazy { LocalizationFactory(javaClass.`package`.name) }
+    operator fun invoke() = localizationFactory
+}
 private val localizationFactory = getLocalizationFactory()
 internal var localization = localizationFactory.getLocalization()
 
@@ -26,7 +30,6 @@ internal var view = Console(localization, writeToBuffer = true)
 fun main(args: Array<String>) {
     val settings = parseArguments(args)
     val installationPath = settings.installationPath.resolve(APPLICATION_NAME)
-    var launcherExecFilePath = getLauncherExecFilePath()
 
     checkLocale(settings.locale)
 
@@ -35,8 +38,8 @@ fun main(args: Array<String>) {
 
     with (settings) {
         when {
-            justShowDeskChanVersion -> deskChanResolver.installedVersion
-            justShowLauncherVersion -> selfResolver.installedVersion
+            justShowDeskChanVersion -> deskChanResolver.installedVersion ?: "0.0.0"
+            justShowLauncherVersion -> selfResolver.installedVersion ?: "0.0.0"
             justShowDeskChanUpdateRequired -> deskChanResolver.isUpdateNeeded
             justShowLauncherUpdateRequired -> selfResolver.isUpdateNeeded
             else -> null
@@ -77,12 +80,14 @@ fun main(args: Array<String>) {
         }
         if (settings.installationPath != env.rootDirPath) {
             view.info("info.copying_launcher")
-            launcherExecFilePath = copyLauncherAndGetExecutable(settings.installationPath) ?: return
+            copyLauncherTo(settings.installationPath)
         }
     } else {
         view.info("info.latest_already_installed")
     }
 
+    val execExtension = if (onWindows) ".exe" else ""
+    val launcherExecFilePath = settings.installationPath.resolve("$LAUNCHER_FILENAME$execExtension")
     when {
         settings.autorun -> enableAutorun(launcherExecFilePath)
         settings.noAutorun -> disableAutorun(launcherExecFilePath)
@@ -171,23 +176,6 @@ private fun install(settings: Settings, deskChanResolver: VersionResolver, insta
     view.info("info.success")
 
     return true
-}
-
-private fun copyLauncherAndGetExecutable(path: Path): Path? {
-    var launcherExecFilePath: Path? = null
-    env.rootDirPath.toFile()
-            .listFiles { file -> file.nameWithoutExtension in setOf(CORE_FILENAME, LAUNCHER_FILENAME) }
-            .forEach {
-                val newFile = path.resolve(it.name).toFile()
-                it.copyTo(newFile, overwrite = true)
-                if (it.name == getLauncherExecFilePath().fileName.toString()) {
-                    launcherExecFilePath = it.toPath()
-                }
-            }
-    if (launcherExecFilePath == null) {
-        view.important("important.no_launcher_after_copying")
-    }
-    return launcherExecFilePath
 }
 
 private fun askUser(question: String): Boolean {
