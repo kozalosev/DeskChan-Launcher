@@ -1,7 +1,7 @@
 DeskChan Launcher
 =================
 
-A program to download another application and keep it up to date.
+An application that downloads DeskChan instance and keeps it up to date.
 
 _Для русскоговорящей аудитории в [Wiki](https://github.com/kozalosev/DeskChan-Launcher/wiki) подготовлен перевод
 данного документа на русский язык._
@@ -12,17 +12,17 @@ Overview
 
 ### Problem
 
-This application respects your laziness and understands how it's hard to upgrade DeskChan every time when a new build
-is released. Really, at this moment we have two ways to do it manually:
+This application respects your laziness and understands that it's hard to upgrade DeskChan every time when a new build
+is released. In fact, at this moment we have two ways to do it manually:
 
 #### First option:
 
-1. Quit the application.  
+1. Quit the application.
 2. Download a distributive archive.
-3. Delete all files and directories in your DeskChan directory (excluding some exceptions):
-   - except for the `data` folder;
-   - and the plugins in the `plugins` folder that are not part of the official distribution.
-4. Extract the archive into it.
+3. Delete all files and directories in your DeskChan directory, excluding:
+   - `data` directory;
+   - `plugins` directory with third-party plugins.
+4. Extract the new archive.
 5. Launch a new version of the application.
 
 #### Second option:
@@ -38,16 +38,16 @@ And you have to repeat all these steps over and over, again and again for every 
 
 ### Solution
 
-Probably, you're already curious what I suggest to do with it and how it **should** work? OK, let's see:
+Probably, you're already curious what I suggest to do with it and how it **should** work. OK, let's see:
 
-1. You launch the application via the launcher. Or even it's started automatically when your computer is starting up.
-2. Amazing! The application is being updated automatically! What a crazy thing!
+1. You launch the application via the launcher or it's started automatically during OS load.
+2. Amazing! The application updates automatically! What a crazy thing!
 3. Profit! It just launches! That's it.
 
 
 ### Reality
 
-Unfortunately, the launcher is not working in this way today. Currently, it's only able to:
+Unfortunately, the launcher is not working in this way now. Currently, it's only able to:
 
 - check if you're using the latest version of it or not;
   - if you don't:
@@ -69,7 +69,7 @@ As of **v0.1.1-dev**, the launcher consists of 3 parts:
 
 | Module              | Files                                           | Description                                                                     |
 | ------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------- |
-| Core library        | _DCL-CORE.jar_                                  | Contains all logic that responsible for the version resolving and installation. |
+| Core library        | _DCL-CORE.jar_                                  | Contains all logic that is responsible for the version resolving and installation. |
 | Command line module | _dcl.exe_, _dcl_                                | Is responsible for interacting with the user via terminal in a text mode.       |
 | Graphical module    | _DeskChan-Launcher.exe_,<br>_DeskChan-Launcher_ | Provides a graphical user interface using JavaFX library.                       |
 
@@ -83,27 +83,24 @@ isn't it?), but they are completely independent of each other.
 
 ### Why do we need 2 modules?
 
-I consciously going to maintain both modules in the future. Maybe someday it will be changed, but for now they have its
-own specialties and exclusive features, which will be covered below.
+I am intentionally maintaining both UI modules as they both have unique features that are based on CLI or GUI workflow. Such features are briefly described in the next sections.
 
 
-#### Command line module
+#### Command line interface module
 
 <div align="center">
     <img src="https://i.imgur.com/ViQzRQv.png">
 </div>
 
-Actually, this module may be called as the main one. At least today, it supports a lot more features and options than
-its "competitor".
+Command line module can be considered as more stable and has more features compared to the GUI one.
 
 By default, it:
 
 - uses the system language;
 - installs DeskChan into the directory of the same name if cannot find it already installed and up to date;
-- and launches the application.
+- launches the application.
 
-But it supports a certain amount of arguments. Some of them just configure various options, but the others are supposed
-to alter the behavior completely. Here they are (this list is likely to be expanded in later releases):
+As usual it supports command line arguments that allow users to configure various aspects of the launcher's work, listed below:
 
 | Argument                     | Description                                                                                                                                                                                                                                                                         |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -119,17 +116,17 @@ to alter the behavior completely. Here they are (this list is likely to be expan
 | `--preserve-distribution`    | By default, the launcher deletes a distributive archive after the installation. You can disable this behavior using this flag.                                                                                                                                                      |
 
 
-#### Graphical module
+#### Graphic user interface module
 
 <div align="center">
     <img src="https://i.imgur.com/SGREDOl.png">
 </div>
 
-As of **v0.1.1-dev** the launcher can be launched in the GUI mode as a usual window. This mode lacks a way to change its
-behavior using command line arguments, but the most useful options are brought to the GUI layer as controls. However,
-they are only equivalents for `--path` and `--autorun`/`--no-autorun`. Moreover, you may set them only during
-the initial installation process. Thus, you cannot disable autorun on startup at any time via graphical interface today.
-I'm going to solve this problem in the future, though.
+As of **v0.1.1-dev** the launcher can be launched in the GUI mode to present a pretty window to the user.
+This mode lacks a way to change program's behavior using command line arguments, but the most useful options were
+implemented as controls. However, they are only equivalents for `--path` and `--autorun`/`--no-autorun`.
+Moreover, you may set them only during the initial installation process. Thus, you cannot disable
+autorun on startup at any time via graphical interface today. I'm going to solve this problem in the future, though.
 
 
 FUTURE
