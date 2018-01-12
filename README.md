@@ -1,7 +1,7 @@
 DeskChan Launcher
 =================
 
-An application that downloads DeskChan instance and keeps it up to date.
+An application that downloads a DeskChan instance and keeps it up to date.
 
 _Для русскоговорящей аудитории в [Wiki](https://github.com/kozalosev/DeskChan-Launcher/wiki) подготовлен перевод
 данного документа на русский язык._
@@ -21,7 +21,7 @@ is released. In fact, at this moment we have two ways to do it manually:
 2. Download a distributive archive.
 3. Delete all files and directories in your DeskChan directory, excluding:
    - `data` directory;
-   - `plugins` directory with third-party plugins.
+   - `plugins` directory **unless it contains third-party plugins**. In this case, preserve all third-party plugins subdirectories and delete everything else.
 4. Extract the new archive.
 5. Launch a new version of the application.
 
@@ -41,13 +41,13 @@ And you have to repeat all these steps over and over, again and again for every 
 Probably, you're already curious what I suggest to do with it and how it **should** work. OK, let's see:
 
 1. You launch the application via the launcher or it's started automatically during OS load.
-2. Amazing! The application updates automatically! What a crazy thing!
+2. Amazing! DeskChan is being updated automatically! What a crazy thing!
 3. Profit! It just launches! That's it.
 
 
 ### Reality
 
-Unfortunately, the launcher is not working in this way now. Currently, it's only able to:
+Unfortunately, the launcher is not working in this way for now. Currently, it's only able to:
 
 - check if you're using the latest version of it or not;
   - if you don't:
@@ -92,7 +92,7 @@ I am intentionally maintaining both UI modules as they both have unique features
     <img src="https://i.imgur.com/ViQzRQv.png">
 </div>
 
-Command line module can be considered as more stable and has more features compared to the GUI one.
+The command line module can be considered as more stable and has more features compared to the GUI one.
 
 By default, it:
 
@@ -100,7 +100,7 @@ By default, it:
 - installs DeskChan into the directory of the same name if cannot find it already installed and up to date;
 - launches the application.
 
-As usual it supports command line arguments that allow users to configure various aspects of the launcher's work, listed below:
+As usual, it supports command line arguments, that allow users to configure various aspects of the launcher's work, listed below:
 
 | Argument                     | Description                                                                                                                                                                                                                                                                         |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -116,7 +116,7 @@ As usual it supports command line arguments that allow users to configure variou
 | `--preserve-distribution`    | By default, the launcher deletes a distributive archive after the installation. You can disable this behavior using this flag.                                                                                                                                                      |
 
 
-#### Graphic user interface module
+#### Graphical user interface module
 
 <div align="center">
     <img src="https://i.imgur.com/SGREDOl.png">
