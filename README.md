@@ -67,11 +67,11 @@ Architecture
 
 As of **v0.1.1-dev**, the launcher consists of 3 parts:
 
-| Module              | Files                                           | Description                                                                     |
-| ------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| Module              | Files                                           | Description                                                                        |
+| ------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------- |
 | Core library        | _DCL-CORE.jar_                                  | Contains all logic that is responsible for the version resolving and installation. |
-| Command line module | _dcl.exe_, _dcl_                                | Is responsible for interacting with the user via terminal in a text mode.       |
-| Graphical module    | _DeskChan-Launcher.exe_,<br>_DeskChan-Launcher_ | Provides a graphical user interface using JavaFX library.                       |
+| Command line module | _dcl.exe_, _dcl_                                | Is responsible for interacting with the user via terminal in a text mode.          |
+| Graphical module    | _DeskChan-Launcher.exe_,<br>_DeskChan-Launcher_ | Provides a graphical user interface using JavaFX library.                          |
 
 <div align="center">
     <img src="https://i.imgur.com/Tg6U5Hu.png">
